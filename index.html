@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Story Module</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+    <style>
+        /* --- CORE STYLES --- */
+        body { 
+            background-color: #0f0505; 
+            color: #451a03; 
+            font-family: 'MedievalSharp', cursive; 
+            overflow: hidden; 
+        }
+
+        /* --- THE SCROLL CONTAINER --- */
+        .scroll-container {
+            position: relative;
+            aspect-ratio: 16/9;
+            width: min(95vw, 160vh);
+            max-width: none;
+            margin: 0 auto;
+            background-image: url('SCROLL.jpg');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            filter: drop-shadow(0 25px 50px rgba(0,0,0,0.9));
+            animation: unroll 1.5s ease-out forwards;
+            transform-origin: center center;
+        }
+
+        /* --- TEXT AREA --- */
+        .scroll-content {
+            position: absolute;
+            inset: 0;
+            padding: 12% 16%; 
+            display: flex;
+            flex-col: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .story-text {
+            font-size: clamp(1.25rem, 3vw, 3.5rem);
+            line-height: 1.4;
+            font-weight: bold;
+            color: #451a03;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+            min-height: 1.5em;
+        }
+        
+        /* --- MAGIC INK REVEAL STYLES --- */
+        .char-reveal {
+            opacity: 0; 
+            transition: opacity 0.5s ease;
+        }
+        
+        .char-reveal.visible {
+            opacity: 1;
+        }
+
+        /* --- START BUTTON (BEGIN) --- */
+        .start-btn {
+            font-size: clamp(2rem, 5vw, 4rem);
+            color: #7f1d1d;
+            text-transform: uppercase;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s;
+            animation: ink-pulse 2s infinite ease-in-out;
+            border-bottom: 2px solid transparent;
+            z-index: 20;
+        }
+        
+        .start-btn:hover {
+            transform: scale(1.1);
+            color: #991b1b;
+            border-bottom: 4px solid #991b1b;
+        }
+
+        /* --- PAGE NAVIGATION BUTTON --- */
+        .page-btn {
+            position: absolute;
+            bottom: 10%; 
+            display: flex;
+            flex-col: column;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'MedievalSharp', cursive;
+            color: #451a03;
+            font-weight: bold;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+            transition: all 0.5s ease;
+            opacity: 0.3; 
+            cursor: default;
+            border: none;
+            background: none;
+            padding: 1rem 2rem; 
+            transform: scale(0.9);
+            z-index: 10;
+        }
+        
+        .page-label {
+            font-size: clamp(1rem, 2vw, 1.5rem); 
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            border-bottom: 2px solid transparent;
+            transition: color 0.3s;
+        }
+
+        .page-btn.active {
+            opacity: 1;
+            cursor: pointer;
+            transform: scale(1);
+            animation: ink-pulse 2s infinite ease-in-out;
+        }
+        
+        .page-btn.active .page-label { color: #991b1b; }
+
+        .next-indicator {
+            font-size: clamp(0.9rem, 1.8vw, 1.25rem);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            opacity: 0; 
+            transform: translateY(-10px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #b91c1c; 
+            font-weight: 900;
+        }
+
+        .page-btn.active .next-indicator {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .page-btn.active:hover {
+            animation: none; 
+            transform: scale(1.1);
+        }
+
+        /* --- TOP CONTROLS --- */
+        .control-group {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+            z-index: 50;
+        }
+
+        .control-btn {
+            color: #78350f;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid #78350f;
+            padding: 0.5rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'MedievalSharp', cursive;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        .control-btn:hover {
+            background: rgba(0,0,0,0.4);
+            color: #f59e0b;
+            border-color: #f59e0b;
+        }
+        
+        .control-btn.hidden { display: none; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes unroll {
+            0% { transform: scaleX(0); opacity: 0; }
+            100% { transform: scaleX(1); opacity: 1; }
+        }
+
+        @keyframes ink-pulse {
+            0% { transform: scale(1); text-shadow: 0 0 0 rgba(153, 27, 27, 0); }
+            50% { transform: scale(1.05); text-shadow: 0 0 10px rgba(153, 27, 27, 0.4); }
+            100% { transform: scale(1); text-shadow: 0 0 0 rgba(153, 27, 27, 0); }
+        }
+        
+        @media (max-width: 768px) {
+            .scroll-container { width: 95vw; max-height: 90vh; }
+            .scroll-content { padding: 15% 18%; }
+            .story-text { line-height: 1.3; }
+            .control-group { top: 1rem; right: 1rem; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center bg-stone-950 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-stone-900 via-stone-950 to-black">
+
+    <!-- Header info -->
+    <div class="absolute top-4 left-0 w-full text-center opacity-50 pointer-events-none">
+        <p class="text-amber-500 text-xs tracking-widest uppercase">Scroll Narrative Module v2.1</p>
+    </div>
+
+    <!-- Background Music -->
+    <audio id="bg-music" loop>
+        <source src="Echoes of the Forgotten Tower.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Top Controls -->
+    <div class="control-group">
+        <!-- Pause/Play (Initially hidden) -->
+        <button id="pause-toggle" class="control-btn hidden" onclick="scrollModule.togglePause()">
+            <i data-lucide="pause" id="pause-icon" class="w-5 h-5"></i>
+            <span id="pause-text" class="hidden md:inline">Pause</span>
+        </button>
+        
+        <!-- Sound Toggle (Initially hidden) -->
+        <button id="sound-toggle" class="control-btn hidden" onclick="scrollModule.toggleSound()">
+            <i data-lucide="volume-x" id="sound-icon" class="w-5 h-5"></i>
+            <span id="sound-text" class="hidden md:inline">Sound Off</span>
+        </button>
+    </div>
+
+    <div class="scroll-container">
+        <div class="scroll-content">
+            <!-- Start Overlay -->
+            <button id="start-btn" class="start-btn" onclick="scrollModule.beginJourney()">
+                Begin Journey
+            </button>
+
+            <!-- Text Area -->
+            <div id="text-display" class="story-text"></div>
+            
+            <!-- Combined Page Number & Next Button -->
+            <button id="page-nav" class="page-btn hidden" onclick="scrollModule.next()" disabled>
+                <span class="page-label">Page <span id="page-num">1</span></span>
+                <div class="next-indicator">
+                    Continue <i data-lucide="arrow-right" class="w-5 h-5 md:w-6 md:h-6"></i>
+                </div>
+            </button>
+            
+        </div>
+    </div>
+
+    <script>
+        const scrollModule = {
+            // Configuration
+            targetDuration: 15000, 
+            
+            // State
+            hasStarted: false,
+            isPaused: false,
+            currentSceneIndex: 0,
+            isRevealing: false,
+            revealInterval: null,
+            charIndex: 0,
+            currentDelay: 50,
+            isSoundOn: false,
+            voices: [],
+            
+            storyLines: [
+                "Hear ye, brave soul! You stand before the beginning of the Quest for the Golden Pint. It is a legendary journey sought by many, but completed by few. The tavern lights glow in the distance, promising eternal glory and free refills for those who survive.",
+                "But before you can taste that sweet nectar, you must prove your worth. Will you don the heavy plate of the Warrior, master of steel? Or will you channel the arcane energies of the Wizard? The choice will define your destiny.",
+                "Deep in the woods, the shadows lengthen and branches snap beneath heavy feet. A foul creature blocks your path, hunger burning in its eyes! Draw your weapon, hero, for words will not save you now.",
+                "The beast falls! The path to the tavern is finally clear. As you push open the heavy oak doors, the smell of roasted meat and frothy ale welcomes you home. Victory is yours!",
+            ],
+
+            init() {
+                lucide.createIcons();
+                
+                // Setup Audio
+                const music = document.getElementById('bg-music');
+                music.volume = 0.2; 
+
+                // Initialize voices
+                window.speechSynthesis.onvoiceschanged = () => {
+                    this.voices = window.speechSynthesis.getVoices();
+                };
+            },
+
+            beginJourney() {
+                this.hasStarted = true;
+                
+                // 1. Force Sound On
+                if (!this.isSoundOn) {
+                    this.toggleSound(true); 
+                }
+
+                // 2. Play Music
+                const music = document.getElementById('bg-music');
+                music.play().catch(e => console.log("Audio play failed (browser policy):", e));
+                
+                // 3. Update UI - Reveal controls now
+                document.getElementById('start-btn').classList.add('hidden');
+                document.getElementById('pause-toggle').classList.remove('hidden');
+                document.getElementById('sound-toggle').classList.remove('hidden');
+                document.getElementById('page-nav').classList.remove('hidden');
+
+                // 4. Start First Scene
+                this.renderScene(0);
+            },
+
+            togglePause() {
+                if (!this.hasStarted) return;
+
+                this.isPaused = !this.isPaused;
+                const icon = document.getElementById('pause-icon');
+                const text = document.getElementById('pause-text');
+                const btn = document.getElementById('pause-toggle');
+                const music = document.getElementById('bg-music');
+
+                if (this.isPaused) {
+                    // --- PAUSE EVERYTHING ---
+                    icon.setAttribute('data-lucide', 'play');
+                    text.innerText = "Resume";
+                    btn.classList.add('bg-amber-900/40', 'border-amber-500', 'text-amber-100');
+                    
+                    // 1. Stop Text
+                    clearInterval(this.revealInterval);
+                    // 2. Stop Voice
+                    window.speechSynthesis.pause();
+                    // 3. Stop Music
+                    music.pause();
+                } else {
+                    // --- RESUME EVERYTHING ---
+                    icon.setAttribute('data-lucide', 'pause');
+                    text.innerText = "Pause";
+                    btn.classList.remove('bg-amber-900/40', 'border-amber-500', 'text-amber-100');
+
+                    // 1. Resume Music/Voice (if sound is active)
+                    if (this.isSoundOn) {
+                        window.speechSynthesis.resume();
+                        music.play();
+                    }
+                    
+                    // 2. Resume Text
+                    if (this.isRevealing) {
+                        this.startRevealLoop();
+                    }
+                }
+                lucide.createIcons();
+            },
+
+            toggleSound(forceState = null) {
+                // If forceState is provided, use it, otherwise toggle
+                this.isSoundOn = forceState !== null ? forceState : !this.isSoundOn;
+                
+                const btn = document.getElementById('sound-toggle');
+                const icon = document.getElementById('sound-icon');
+                const text = document.getElementById('sound-text');
+                const music = document.getElementById('bg-music');
+                
+                if (this.isSoundOn) {
+                    icon.setAttribute('data-lucide', 'volume-2');
+                    text.innerText = "Sound On";
+                    btn.classList.add('text-amber-500', 'border-amber-500');
+                    
+                    // Play music/voice if we have started and not paused
+                    if (this.hasStarted && !this.isPaused) {
+                        music.play().catch(e => console.log("Audio resume failed:", e));
+                        
+                        if (this.isRevealing) {
+                            window.speechSynthesis.cancel(); // Clear any partial queue
+                            this.speak(this.storyLines[this.currentSceneIndex]);
+                        }
+                    }
+                } else {
+                    icon.setAttribute('data-lucide', 'volume-x');
+                    text.innerText = "Sound Off";
+                    btn.classList.remove('text-amber-500', 'border-amber-500');
+                    
+                    // Silence Everything
+                    window.speechSynthesis.cancel();
+                    music.pause();
+                }
+                lucide.createIcons();
+            },
+
+            speak(text) {
+                if (!this.isSoundOn || this.isPaused) return;
+                
+                window.speechSynthesis.cancel(); 
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                if (this.voices.length === 0) this.voices = window.speechSynthesis.getVoices();
+                
+                const preferredVoice = this.voices.find(voice => 
+                    voice.name.includes('UK English Male') || 
+                    voice.lang === 'en-GB' || 
+                    voice.name.includes('Google UK English')
+                );
+
+                if (preferredVoice) utterance.voice = preferredVoice;
+                
+                utterance.rate = 0.85; 
+                utterance.pitch = 0.9;
+
+                window.speechSynthesis.speak(utterance);
+            },
+
+            next() {
+                if (this.isPaused) return; 
+
+                if (this.isRevealing) {
+                    this.finishRevealing();
+                    return;
+                }
+
+                this.currentSceneIndex++;
+                if (this.currentSceneIndex >= this.storyLines.length) this.currentSceneIndex = 0;
+                this.renderScene(this.currentSceneIndex);
+            },
+
+            renderScene(index) {
+                const textEl = document.getElementById('text-display');
+                const navBtn = document.getElementById('page-nav');
+                const pageNum = document.getElementById('page-num');
+                
+                // Reset UI
+                this.isRevealing = true;
+                this.charIndex = 0; 
+                navBtn.classList.remove('active');
+                navBtn.disabled = true; 
+                pageNum.innerText = index + 1;
+
+                const textToType = this.storyLines[index];
+                
+                // Start Narration
+                this.speak(textToType);
+
+                // Prepare HTML
+                let html = '';
+                for (let char of textToType) {
+                    html += `<span class="char-reveal">${char}</span>`;
+                }
+                textEl.innerHTML = html;
+
+                // Calculate Delay
+                const chars = textEl.querySelectorAll('.char-reveal');
+                this.currentDelay = Math.max(10, Math.floor(this.targetDuration / chars.length));
+
+                // Start Loop
+                this.startRevealLoop();
+            },
+
+            startRevealLoop() {
+                clearInterval(this.revealInterval);
+                const textEl = document.getElementById('text-display');
+                const chars = textEl.querySelectorAll('.char-reveal');
+
+                this.revealInterval = setInterval(() => {
+                    if (this.charIndex < chars.length) {
+                        chars[this.charIndex].classList.add('visible');
+                        this.charIndex++;
+                    } else {
+                        this.finishRevealing();
+                    }
+                }, this.currentDelay);
+            },
+
+            finishRevealing() {
+                clearInterval(this.revealInterval);
+                const textEl = document.getElementById('text-display');
+                const navBtn = document.getElementById('page-nav');
+
+                const chars = textEl.querySelectorAll('.char-reveal');
+                chars.forEach(c => c.classList.add('visible'));
+                
+                navBtn.classList.add('active');
+                navBtn.disabled = false;
+                this.isRevealing = false;
+            }
+        };
+
+        window.onload = () => scrollModule.init();
+    </script>
+</body>
+</html>
