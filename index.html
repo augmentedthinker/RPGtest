@@ -110,6 +110,9 @@
 </head>
 <body class="bg-slate-950 text-slate-200 font-sans h-screen w-screen overflow-hidden selection:bg-yellow-500/30">
 
+    <!-- AUDIO PLAYERS -->
+    <audio id="narrative-player" preload="auto"></audio>
+
     <!-- CINEMATIC VIDEO OVERLAY (Generic) -->
     <div id="video-overlay" class="fixed inset-0 z-[60] bg-black flex items-center justify-center transition-opacity duration-1000 hidden opacity-0">
         <video id="game-video" class="w-full h-full object-cover" playsinline muted>
@@ -194,6 +197,13 @@
             town: ["https://image.pollinations.ai/prompt/fantasy%20tavern%20party%20scene%2C%20warrior%20and%20wizard%20surrounded%20by%20beautiful%20barmaids%20and%20cheering%20crowd%2C%20magical%20lights%20and%20ale%20flowing%2C%20fantasy%20celebration%20art%20oil%20painting%2C%20vibrant%20and%20cheerful?width=1024&height=1024&nologin=true&seed=45"],
             
             game_over: ["https://images.unsplash.com/photo-1509248961158-e54f6934749c?q=80&w=1024&auto=format&fit=crop"]
+        };
+        
+        const NARRATION = {
+            intro: 'begin.mp3',
+            char_select: 'hero-type.mp3',
+            path_select: 'path.mp3',
+            monster_intro: 'ambush.mp3'
         };
 
         const DATA = {
@@ -344,7 +354,7 @@
 
                     // Enemy Turn
                     roll = Math.floor(Math.random() * 20) + 1;
-                    if (roll !== 1 && (roll + this.state.enemy.ab >= this.state.hero.ac)) {
+                    if (roll !== 1 && (roll + this.state.enemy.ab >= this.state.enemy.ac)) {
                         let dmg = Math.floor(Math.random() * this.state.enemy.dmgDie) + 1 + this.state.enemy.dmgMod;
                         this.state.hero.currentHp -= dmg;
                     }
@@ -580,7 +590,34 @@
                 if(vid) {
                     vid.muted = !this.state.soundEnabled;
                 }
+                
+                // NEW: Handle narration toggle
+                const audio = document.getElementById('narrative-player');
+                if (this.state.soundEnabled) {
+                    // If enabling sound, try to play current scene narration
+                    this.playNarrative(this.state.scene);
+                } else {
+                    // If disabling, silence everything
+                    if(audio) audio.pause();
+                }
+
                 this.renderNarrative(); // Re-render to update button state
+            },
+
+            playNarrative(scene) {
+                const audio = document.getElementById('narrative-player');
+                if (!audio) return;
+                
+                // Stop any current audio
+                audio.pause();
+                
+                // Check if we have a track for this scene
+                const track = NARRATION[scene];
+                if (track && this.state.soundEnabled) {
+                    audio.src = track;
+                    // Play returns a promise which might fail if user hasn't interacted yet
+                    audio.play().catch(e => console.log("Audio play failed (interaction needed):", e));
+                }
             },
             
             // --- CINEMATIC SYSTEM ---
@@ -588,6 +625,10 @@
                 const overlay = document.getElementById('video-overlay');
                 const video = document.getElementById('game-video');
                 const btn = document.getElementById('video-play-btn');
+                
+                // Stop narration when video starts
+                const audio = document.getElementById('narrative-player');
+                if(audio) audio.pause();
                 
                 if (!overlay || !video) { if (callback) callback(); return; }
 
@@ -697,6 +738,9 @@
                         this.updateBg();
                     }
                     el.style.opacity = '1';
+                    
+                    // TRIGGER NARRATION
+                    this.playNarrative(scene);
                 }, 300);
             },
 
